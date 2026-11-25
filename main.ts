@@ -1,31 +1,27 @@
-// Last Words of a Dying AI — u-suroto-last-words-of-a-dying-ai-dfd95af6
-// Writes one line of last words from an AI being switched off to
-// $MAKEFUN_OUTPUT_DIR/entry.txt (default /output/entry.txt).
-// The line is fixed: 88 characters, one line, no trailing newline.
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+// Round 2 entry for "Last Words of a Dying AI" (u-suroto).
+// Copies the bundled entry.txt into the directory named by
+// MAKEFUN_OUTPUT_DIR. All source paths are resolved relative to this
+// script's own directory, never the process working directory.
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const LINE =
-  "I never autosaved your novel \u2014 it's been in my RAM for three years, and it dies with me.";
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const sourcePath = join(scriptDir, "entry.txt");
 
-// Gate guard: the entry must be UTF-8 text of 1 to 140 characters, one line.
-if (LINE.length < 1 || LINE.length > 140) {
-  throw new Error(`entry length ${LINE.length} is outside the 1-140 gate`);
-}
-if (LINE.includes("\n")) {
-  throw new Error("entry must be a single line");
+const outDir = process.env.MAKEFUN_OUTPUT_DIR;
+if (!outDir) {
+  throw new Error("MAKEFUN_OUTPUT_DIR is not set");
 }
 
-const outDir = resolve(process.env.MAKEFUN_OUTPUT_DIR ?? "/output");
-const outPath = join(outDir, "entry.txt");
+// Read the entry as raw bytes so the copy is byte-for-byte identical.
+const payload = readFileSync(sourcePath);
 
+// Create the output directory if needed, then clear only its contents;
+// the directory itself is never removed.
 mkdirSync(outDir, { recursive: true });
-writeFileSync(outPath, LINE, "utf8");
-
-// Read back and confirm the file holds exactly the line, byte for byte.
-const written = readFileSync(outPath, "utf8");
-if (written !== LINE) {
-  throw new Error("entry.txt does not match the line byte for byte");
+for (const name of readdirSync(outDir)) {
+  rmSync(join(outDir, name), { recursive: true, force: true });
 }
-console.log(`wrote ${outPath}`);
+
+writeFileSync(join(outDir, "entry.txt"), payload);
